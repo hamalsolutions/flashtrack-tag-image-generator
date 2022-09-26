@@ -1,0 +1,289 @@
+<?php
+   define('FONT_PATH', '/var/www/admin/formats/fonts/');
+  
+  function cutline($filename,$line_no=-1,$cabeza) 
+  {
+     $strip_return=FALSE;
+     
+     $data=file($filename);
+     $pipe=fopen($filename,'w');
+     $size=count($data);
+
+     if($line_no==-1) 
+        $skip=$size-1;
+     else 
+        $skip=$line_no-1;
+        
+     fputs($pipe,$cabeza);
+     for($line=0;$line<$size;$line++)
+        if($line!=$skip)
+            fputs($pipe,"\r\n".$data[$line]);
+            //fputs($pipe,"\r\n".str_replace(",,",",",$data[$line]));
+        else
+            $strip_return=TRUE;
+
+     return $strip_return;
+  }
+  
+  function primerCambio($bad, $good)
+  {
+      global $data, $flag, $num;
+      if (isset($_POST[$bad]))
+                {
+                    for ($f=0; $f < $num; $f++)
+                    {
+                        if ($data[$f] == $_POST[$bad])
+                         $data[$f] = $good;
+                         $flag = 1;
+                    }
+                }
+      return $flag;
+  }
+  
+  function seleciones($bad, $good, $indexVar)
+  {
+      global $num, $data;
+      if (empty($indexVar))
+      {
+          echo $good .': ';
+          echo '<select name="'. $bad .'">';
+          echo '<option value=""> </option>';
+          
+          for ($i=0; $i<$num; $i++)
+          {
+            echo '<option value="'. $data[$i] .'">'. $data[$i] .'</option>';
+          }
+          
+          echo '</select>';
+          echo '<p></p>';
+      }
+  }
+  
+  function segundoCambio()
+  {
+      global $flag, $csvfile, $new_headers;
+      if ($flag == 1)
+         {
+            $encabezado = '';
+            for ($i=0;$i<count($new_headers);$i++)
+            {
+                //if($new_headers[$i]<>'')
+                //{
+                    $encabezado.=$new_headers[$i];
+                     if ($i<>(count($new_headers)-1))
+                     $encabezado.=','; 
+                //}
+            }
+            cutline('../cvs/'.$csvfile,1,$encabezado);
+            $flag == 0;
+         }
+  }
+  
+  function getvar($name)
+        {
+        global $_GET, $_POST;
+        if (isset($_GET[$name])) return $_GET[$name];
+        else if (isset($_POST[$name])) return $_POST[$name];
+        else return false;
+        }
+  
+  function sinSigno($number)
+  {
+       $length = strlen($number);
+       $number = substr($number,0,1) == '$'?substr($number,1,$length-1):$number;
+       return $number;
+  }
+  
+  function puntoCentrado($text, $fontSize, $boldOrNot)
+  {
+    $length = strlen($text);
+    $formatCenter = (FORMAT_WIDTH / 2);
+    $puntoCentrado = $formatCenter - ((($fontSize - ($boldOrNot == 1 ? 1.5:5)) * $length) / 2);
+    return $puntoCentrado;
+  }
+  
+  function puntoCentradoEnSeccion($text, $fontSize, $boldOrNot, $anchura)
+  {
+    $length = strlen($text);
+    $formatCenter = ($anchura / 2);
+    $puntoCentrado = $formatCenter - ((($fontSize - ($boldOrNot == 1 ? 1.5:5)) * $length) / 2);
+    return $puntoCentrado;
+  }
+  
+  function puntoCentrado270($text, $fontSize, $boldOrNot)
+  {
+    $length = strlen($text);
+    $formatCenter = (FORMAT_HEIGHT / 2);
+    $puntoCentrado = $formatCenter - ((($fontSize - ($boldOrNot == 1 ? 1.5:5)) * $length) / 2);
+    return $puntoCentrado;
+  }
+  
+  function textoParrafoCentrado($area,$fontSize,$angulo,$yPoint,$color,$font,$boldOrNot,$text,$maxLengthInTheLine)
+  {
+      if (strlen($text)>$maxLengthInTheLine)
+        {
+            imagettftext($area,$fontSize,$angulo,puntoCentrado(substr($text,0,$maxLengthInTheLine),$fontSize,$boldOrNot),$yPoint-5,$color,$font,substr($text,0,$maxLengthInTheLine));
+            imagettftext($area,$fontSize,$angulo,puntoCentrado(substr($text,$maxLengthInTheLine,strlen($text)),$fontSize,$boldOrNot),$yPoint+5,$color,$font,substr($text,$maxLengthInTheLine,strlen($text)));
+        }
+        else
+        {
+            imagettftext($area,$fontSize,$angulo,puntoCentrado($text,$fontSize,$boldOrNot),$yPoint-5,$color,$font,$text);
+        }
+  }
+  
+  function textoParrafo($area,$fontSize,$angulo,$xPoint,$yPoint,$color,$font,$boldOrNot,$text,$maxLengthInTheLine)
+  {
+      if (strlen($text)>$maxLengthInTheLine)
+        {
+            if (substr($text,$maxLengthInTheLine,1)==' ' || substr($text,$maxLengthInTheLine+1,1)==' ')
+            {
+                imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint-5,$color,$font,substr($text,0,$maxLengthInTheLine));
+                imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint+5,$color,$font,substr($text,$maxLengthInTheLine,strlen($text)));
+            }
+            else
+            {
+                while (substr($text,$maxLengthInTheLine,1)<>' ')
+                {
+                    $maxLengthInTheLine -= 1;
+                }
+                imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint-5,$color,$font,substr($text,0,$maxLengthInTheLine));
+                imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint+5,$color,$font,substr($text,$maxLengthInTheLine,strlen($text)));
+            }
+        }
+        else
+        {
+            imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint-5,$color,$font,$text);
+        }
+  }
+  
+  function textoParrafoEspaciado($area,$fontSize,$angulo,$xPoint,$yPoint,$color,$font,$boldOrNot,$text,$espacioEntreLineas,$maxLengthInTheLine)
+  {
+      if (strlen($text)>$maxLengthInTheLine)
+        {
+            imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint-5,$color,$font,substr($text,0,$maxLengthInTheLine));
+            imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint+$espacioEntreLineas,$color,$font,substr($text,$maxLengthInTheLine,strlen($text)));
+        }
+        else
+        {
+            imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint-5,$color,$font,$text);
+        }
+  }
+  
+  function imagettfJustifytext($im, $fsize, $Y, $text_color, $font, $W, $H, $text)
+  {
+          
+        $Justify = 1;
+        $X = 4;
+        $angle = 0;
+        $L_R_C = $Justify;
+        $_bx = imageTTFBbox($fsize,0,$font,$text);
+
+        if($L_R_C == 0) //Justificar a la Izquierda
+        { 
+            $Y2 = $Y + $fsize;
+            imagettftext($im, $fsize, $angle, $X, $Y2, $text_color, $font, $text);
+        }
+        elseif($L_R_C == 1) //Justificar a la Derecha
+        { 
+            $s = split("[\n]+", $text);
+            $__H = $Y;
+           
+            foreach($s as $key=>$val)
+            {
+                $_b = imageTTFBbox($fsize,0,$font,$val);
+                $_W = abs($_b[2]-$_b[0]);
+                //Definiendo la coordenada en X.
+                $_X = $W-$_W;
+                //Definiendo la coordenada en Y.
+                $_H = abs($_b[5]-$_b[3]); 
+                $__H += $_H;             
+                imagettftext($im, $fsize, $angle, $_X, $__H, $text_color, $font, $val);   
+                $__H += 6;
+            }
+        }
+        elseif($L_R_C == 2) //Justificar al Centro
+        { 
+            $s = split("[\n]+", $text);
+            $__H= $Y;
+           
+            foreach($s as $key=>$val)
+            {
+           
+                $_b = imageTTFBbox($fsize,0,$font,$val);
+                $_W = abs($_b[2]-$_b[0]);
+                //Definiendo la coordenada en X.
+                $_X = abs($W/2)-abs($_W/2);
+                //Definiendo la coordenada en Y.
+                $_H = abs($_b[5]-$_b[3]); 
+                $__H += $_H;             
+                imagettftext($im, $fsize, $angle, $_X, $__H, $text_color, $font, $val);   
+                $__H += 6;
+            }
+        }       
+  }
+  
+function formatizarTexto($pattern, $text)
+{
+    $textoFormatizado = '';
+    $longitud = strlen($pattern);
+    $arregloPattern = array();
+    
+    for ($i=0;$i<=$longitud;$i++)
+      $arregloPattern[$i] = substr($pattern,$i,1);
+    
+    $textIndice = 0;
+    
+    for ($i=0;$i<=$longitud;$i++)
+    {
+        if ($arregloPattern[$i] == ' ')
+        {
+            $textoFormatizado .= ' ';
+        }
+        else
+        {
+            $textoFormatizado .= substr($text,$textIndice,1);
+            $textIndice++;
+        }
+    }
+    
+    return $textoFormatizado;
+}
+  
+function rotar($img, $rotation) {
+  $width = imagesx($img);
+  $height = imagesy($img);
+  switch($rotation) {
+    case 90: $newimg= @imagecreatetruecolor($height , $width );break;
+    case 180: $newimg= @imagecreatetruecolor($width , $height );break;
+    case 270: $newimg= @imagecreatetruecolor($height , $width );break;
+    case 0: return $img;break;
+    case 360: return $img;break;
+  }
+  if($newimg) {
+    for($i = 0;$i < $width ; $i++) {
+      for($j = 0;$j < $height ; $j++) {
+        $reference = imagecolorat($img,$i,$j);
+        switch($rotation) {
+          case 90: if(!@imagesetpixel($newimg, ($height - 1) - $j, $i, $reference )){return false;}break;
+          case 180: if(!@imagesetpixel($newimg, $i, ($height - 1) - $j, $reference )){return false;}break;
+          case 270: if(!@imagesetpixel($newimg, $j, $width - $i, $reference )){return false;}break;
+        }
+      }
+    } return $newimg;
+  }
+  return false;
+}
+
+// Funcion que aplica el formato de millares a una cantidad por medio de separar los digitos con comas. ( xxx,xxx )
+function formatoMillares($number)
+{
+    $fNumber = $number;
+    if ($number > 999999)
+        $fNumber = substr($number,0,-6) .','. substr($number,strlen($number)-6,3) .','.substr($number,strlen($number)-3,3);
+    else
+        if ($number > 999)
+            $fNumber = substr($number,0,-3).','.substr($number,strlen($number)-3,3);
+    
+    return $fNumber;
+}
+?>
