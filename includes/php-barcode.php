@@ -77,7 +77,7 @@ if (isset($_ENV['windir']) && file_exists($_ENV['windir'])){
  * leave blank if you don't have them :(
  * genbarcode is needed to render encodings other than EAN-12/EAN-13/ISBN
  */
-$genbarcode_loc="/var/www/html/genbarcode";
+$genbarcode_loc="/var/www/html/labels/genbarcode";
 
 
 /* CONFIGURATION ENDS HERE */

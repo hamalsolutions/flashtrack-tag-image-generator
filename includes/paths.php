@@ -1,3 +1,3 @@
 <?php
-    define("FONT_PATH", "/var/www/html/fonts/");
+    define("FONT_PATH", "/var/www/html/labels/fonts/");
 ?>
