@@ -1,4 +1,10 @@
 <?php
+    require __DIR__ . '/../vendor/autoload.php';
+
+    $vendorDir = dirname(__DIR__);
+    $dotenv = Dotenv\Dotenv::createImmutable($vendorDir);
+    $dotenv->load();
+
     $ind = array();
     $originales = array();
     $cantidadCorrectos = count($correctos);
@@ -11,7 +17,8 @@
         $modificado = str_replace('#','N',$modificado);
         $originales[$i]='s'.strtolower($modificado);
     }
-    
+
+    require  __DIR__ . '/functions.php';
     
     if (isset($_GET['csvfile']) || isset($_POST['selection']))
     {
@@ -67,7 +74,6 @@
                 //$order = $_GET['order'];
             }
             
-            require_once ('../includes/functions.php');
             $handle = fopen($filePath.$csvfile, "r+");
             $row = 1;
             $flag = 1;
@@ -194,12 +200,10 @@
        }   
     }
     else
-    {
-        require_once ('../includes/functions.php');
-        
+    {   
         $campo = $ind;
         
-                // Valores obtenidos por Get para generar los samples desde un CSV
+        // Valores obtenidos por Get para generar los samples desde un CSV
         for ($i=0;$i<$cantidadCorrectos;$i++)
                   $campo[$i] = getvar($originales[$i]);
         

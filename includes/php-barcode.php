@@ -1,4 +1,4 @@
-<?
+<?php
 /*
  * PHP-Barcode 0.3pl1
  
@@ -56,8 +56,8 @@ $text_color=Array(0,0,0);
  * use arialbd.ttf located in same directory like the script
  * which includes/requires php-barcode.php
  */
- if ($withText)
-$font_loc=dirname($_SERVER["PATH_TRANSLATED"])."fonts/".$numbersFont;
+if ($withText)
+    $font_loc=$_ENV['FONT_PATH'].$numbersFont;
 
 /* SAMPLE2 :
  * use font specified by full-path
@@ -67,7 +67,7 @@ $font_loc=dirname($_SERVER["PATH_TRANSLATED"])."fonts/".$numbersFont;
 /* Automatic-Detection of Font if running Windows
  * kick this lines if you don't need them! */
 if (isset($_ENV['windir']) && file_exists($_ENV['windir'])){
-    $font_loc=$_ENV['windir']."\Fonts\arial.ttf";
+    $font_loc=$_ENV['FONT_PATH']."arial.ttf";
 }
 
 /* ******************************************************************** */
@@ -77,12 +77,12 @@ if (isset($_ENV['windir']) && file_exists($_ENV['windir'])){
  * leave blank if you don't have them :(
  * genbarcode is needed to render encodings other than EAN-12/EAN-13/ISBN
  */
-$genbarcode_loc="/var/www/html/labels/genbarcode";
+$genbarcode_loc=$_ENV["GENBARCODE_PATH"];
 
 
 /* CONFIGURATION ENDS HERE */
 
-require("encode_bars.php"); /* build-in encoders */
+require __DIR__ . "/encode_bars.php"; /* build-in encoders */
 
 /* 
  * barcode_outimage(text, bars [, scale [, mode [, total_y [, space ]]]] )
@@ -107,6 +107,8 @@ require("encode_bars.php"); /* build-in encoders */
 class upcvalidator {
     
     function createCheckDigit($code) {
+        $oddsum = 0;
+        $evensum = 0;
         if ($code) {
             for ($counter=0;$counter<=strlen($code)-1;$counter++) {
                 $codearr[]=substr($code,$counter,1);
@@ -504,6 +506,7 @@ function barcode_print($code, $encoding="ANY", $scale = 2 ,$mode = "png" ){
     }
     
     $bars=barcode_encode($code,$encoding);
+    
     if (!$bars) return;
     if (!$mode) $mode="png";
     if (eregi($mode,"^(text|txt|plain)$")) print barcode_outtext($bars['text'],$bars['bars']);
@@ -511,5 +514,3 @@ function barcode_print($code, $encoding="ANY", $scale = 2 ,$mode = "png" ){
     else barcode_outimage($bars['text'],$bars['bars'],$scale, $mode);
     return $bars;
 }
-
-?>
