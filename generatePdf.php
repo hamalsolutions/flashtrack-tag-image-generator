@@ -20,15 +20,35 @@ if (isset($postData['orderNumber'])) {
   $orderNumber = $postData['orderNumber'];
 } 
 
-if (isset($postData['data'])) {
-  $data = $postData['data'];
-}
-
 if (isset($postData['label'])) {
   $label = $postData['label'];
 }
 
-if (!isset($orderNumber) || !isset($data) || !isset($label)) {
+function getImageUrl($field, $label) {
+  $fileName = $label;
+  $params = implode('&', array_map(function ($item) use ($field) {
+    return 's' . strtolower(trim($item)) . '=' . urlencode(isset($field[$item]) ? trim($field[$item]) : '');
+  }, array_keys($field)));
+  $imageUrl = "{$fileName}?{$params}&sample=1";
+  return $imageUrl;
+}
+
+function getImageUrls($data, $label) {
+  $urls = array();
+  foreach ($data as $item) {
+    $params = getImageUrl($item, $label);
+    $urls[] = $params;
+  }
+  return $urls;
+}
+
+if (isset($postData['data'])) {
+  $data = $postData['data'];
+  $labelImgSrc = $label["imgSrc"];
+  $imgUrls = getImageUrls($data, $labelImgSrc);
+}
+
+if (!isset($orderNumber) || !isset($data) || !isset($label) || !isset($imgUrls)) {
   http_response_code(403);
   die('Forbidden');
 }
@@ -115,7 +135,7 @@ $maxHorizontalImages = floor($availableWidth / $lSize["width"]);
 $maxVerticalImages = floor($availableHeight / $lSize["height"]);
 
 $maxItemsPerPage = $maxHorizontalImages * $maxVerticalImages;
-$maxPages = ceil(count($data) / $maxItemsPerPage);
+$maxPages = ceil(count($imgUrls) / $maxItemsPerPage);
 
 // Create new PDF document
 $pdf = new TCPDF('P', 'mm', 'A4', true, 'UTF-8', false);
@@ -154,7 +174,7 @@ if (DEBUG_PDF) {
   echo "Label size: " . $lSize["width"] . " ". $lSize["height"] . "<br><br>";
 }
 
-foreach ($data as $i => $url) {
+foreach ($imgUrls as $i => $url) {
   $currentImageNumber = $i + 1;
   $imageData = file_get_contents($url);
 
