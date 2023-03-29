@@ -6,22 +6,14 @@ set_time_limit(60);
 
 require_once('vendor/autoload.php');
 
-$jsonData = file_get_contents('php://input');
-
-if (empty($jsonData) || !json_decode($jsonData)) {
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   http_response_code(403);
-  die('Forbidden');
+  exit();
 }
 
-// get the post data and decode it
-$postData = json_decode($jsonData, true);
-
-if (isset($postData['orderNumber'])) {
-  $orderNumber = $postData['orderNumber'];
-} 
-
-if (isset($postData['label'])) {
-  $label = $postData['label'];
+if (!isset($_POST['data']) || !isset($_POST['label']) || !isset($_POST['orderNumber'])) {
+  http_response_code(403);
+  exit();
 }
 
 function getImageUrl($field, $label) {
@@ -42,11 +34,12 @@ function getImageUrls($data, $label) {
   return $urls;
 }
 
-if (isset($postData['data'])) {
-  $data = $postData['data'];
-  $labelImgSrc = $label["imgSrc"];
-  $imgUrls = getImageUrls($data, $labelImgSrc);
-}
+$data = json_decode($_POST['data'], true);
+$label = json_decode($_POST['label'], true);
+$orderNumber = json_decode($_POST['orderNumber'], true);
+
+$labelImgSrc = $label['imgSrc'];
+$imgUrls = getImageUrls($data, $labelImgSrc);
 
 if (!isset($orderNumber) || !isset($data) || !isset($label) || !isset($imgUrls)) {
   http_response_code(403);
