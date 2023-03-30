@@ -217,14 +217,14 @@ $pool = new Pool($client, $promises, [
   'fulfilled' => function ($data) use (&$results) {
     $results[] = $data;
   },
-  'rejected' => function ($reason, $index) use ($promises, $pool, $client) {
+  'rejected' => function ($reason, $index) use (&$promises, &$pool) {
     if (DEBUG_PDF) {
       echo "Request failed for image at index $index. Retrying...\n";
     }
 
     if ($index < count($promises) - 1) {
       sleep(1);
-      $pool->submit($promises[$index + 1]);
+      $pool->getQueue()->enqueue($promises[$index + 1]);
     }
   }
 ]);
@@ -233,21 +233,6 @@ $pool->promise()->wait();
 
 foreach ($results as $i => $imgData) {
   $currentImageNumber = $i + 1;
-
-  // $response = null;
-  // $imageData = null;
-  // $statusCode = null;
-
-  // do {
-  //   if ($statusCode != 200) { 
-  // $response = retrieveImage($url);
-  // sleep(1);
-  // $imageData = $response['imageData'];
-  // $statusCode = $response['statusCode'];
-
-  // echo "Image [$i]: Status: [$statusCode],       <br>";
-    // }
-  // } while ($statusCode != 200);
   
   $pdf->Image('@'.$imgData, $x, $y, $lSize["width"], $lSize["height"], '', '', '', true, 300, '', false, false, 0, false, false, false);
   
