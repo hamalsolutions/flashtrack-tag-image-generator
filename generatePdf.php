@@ -153,14 +153,19 @@ $pdf->setAutoPageBreak(false, 0);
 $pdf->setPrintFooter(false);
 // Add a page
 $pdf->AddPage();
-$pdf->Text(65, 5,  'Flashtrak # ' . $orderNumber);
-
+if ($orderNumber != "") {
+  $pdf->Text(65, 5,  'Flashtrak # ' . $orderNumber);
+}
 
 // Set images initial position
 $separator = 10 / $page["dpi"];
 
 $x = 10;
-$y = 20;
+$y = 10;
+
+if ($orderNumber != "") {
+  $y = 20;
+}
 
 $labelWidthWithSeparator  = $lSize["width"] + 10 * $separator;
 $labelHeightWithSeparator = $lSize["height"] + 10 * $separator;
