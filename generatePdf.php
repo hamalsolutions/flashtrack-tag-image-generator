@@ -198,26 +198,38 @@ $client = new GuzzleHttp\Client();
 $promises = [];
 
 foreach ($imgUrls as $url) {
-  $promises[] = $client->getAsync($url);
+  $promises[] = function() use ($client, $url) {
+    return $client->getAsync($url)->then(
+      function(Response $response) {
+        if ($response->getStatusCode() == 200) {
+          return $response->getBody()->getContents();
+        }
+        throw new Exception('Request failed');
+      }
+    );
+  };
 }
 
 $results = [];
 
-$eachPromise = new EachPromise($promises, [
+$pool = new Pool($client, $promises, [
   'concurrency' => 10,
-  'fulfilled' => function (Response $response) use (&$results) {
-      if ($response->getStatusCode() == 200) {
-        $results[] = $response->getBody()->getContents();
-      }
+  'fulfilled' => function ($data) use (&$results) {
+    $results[] = $data;
   },
-   
-  'rejected' => function ($reason) {
-    // handle promise rejected
-    echo "fail";
+  'rejected' => function ($reason, $index) use ($promises, $pool, $client) {
+    if (DEBUG_PDF) {
+      echo "Request failed for image at index $index. Retrying...\n";
+    }
+
+    if ($index < count($promises) - 1) {
+      sleep(1);
+      $pool->submit($promises[$index + 1]);
+    }
   }
 ]);
 
-$eachPromise->promise()->wait();
+$pool->promise()->wait();
 
 foreach ($results as $i => $imgData) {
   $currentImageNumber = $i + 1;
