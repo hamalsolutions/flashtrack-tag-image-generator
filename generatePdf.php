@@ -2,9 +2,12 @@
 
 define("DEBUG_PDF", false);
 ini_set('memory_limit', '256M');
-set_time_limit(120);
+set_time_limit(150);
 
 require_once('vendor/autoload.php');
+
+use GuzzleHttp\Promise\EachPromise;
+use GuzzleHttp\Psr7\Response;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   http_response_code(403);
@@ -46,6 +49,9 @@ if (!isset($orderNumber) || !isset($data) || !isset($label) || !isset($imgUrls))
   die('Forbidden');
 }
 
+
+// var_dump($imgUrls);
+// die();
 $unit = "cm";
 
 $UNIT_SIZES = [
@@ -175,7 +181,7 @@ function retrieveImage($url) {
     $responseHeaders = stream_get_meta_data($fp)['wrapper_data'];
     $imageData = stream_get_contents($fp);
     fclose($fp);
-    
+
     // Get response status code from headers
     preg_match('/^HTTP\/\d+\.\d+\s+(\d+)/', $responseHeaders[0], $matches);
     $statusCode = $matches[1];
@@ -183,27 +189,55 @@ function retrieveImage($url) {
     // Return array with image data and response headers
     return array('statusCode' => $statusCode, 'headers' => $responseHeaders, 'imageData' => $imageData);
   } catch (\Throwable $th) {
-    sleep(1);
     return array('statusCode' => 500, 'headers' => [], 'imageData' => null);
   }
 }
 
-foreach ($imgUrls as $i => $url) {
+$client = new GuzzleHttp\Client();
+
+$promises = [];
+
+foreach ($imgUrls as $url) {
+  $promises[] = $client->getAsync($url);
+}
+
+$results = [];
+
+$eachPromise = new EachPromise($promises, [
+  'concurrency' => 10,
+  'fulfilled' => function (Response $response) use (&$results) {
+      if ($response->getStatusCode() == 200) {
+        $results[] = $response->getBody()->getContents();
+      }
+  },
+   
+  'rejected' => function ($reason) {
+    // handle promise rejected
+    echo "fail";
+  }
+]);
+
+$eachPromise->promise()->wait();
+
+foreach ($results as $i => $imgData) {
   $currentImageNumber = $i + 1;
 
-  $response = null;
-  $imageData = null;
-  $statusCode = null;
+  // $response = null;
+  // $imageData = null;
+  // $statusCode = null;
 
-  do {
-    if ($statusCode != 200) { 
-      $response = retrieveImage($url);
-      $imageData = $response['imageData'];
-      $statusCode = $response['statusCode'];
-    }
-  } while ($statusCode != 200);
+  // do {
+  //   if ($statusCode != 200) { 
+  // $response = retrieveImage($url);
+  // sleep(1);
+  // $imageData = $response['imageData'];
+  // $statusCode = $response['statusCode'];
+
+  // echo "Image [$i]: Status: [$statusCode],       <br>";
+    // }
+  // } while ($statusCode != 200);
   
-  $pdf->Image('@'.$imageData, $x, $y, $lSize["width"], $lSize["height"], '', '', '', true, 300, '', false, false, 0, false, false, false);
+  $pdf->Image('@'.$imgData, $x, $y, $lSize["width"], $lSize["height"], '', '', '', true, 300, '', false, false, 0, false, false, false);
   
   if (DEBUG_PDF) {
     echo "Image [$i]:       [$x, $y],       <br>";
