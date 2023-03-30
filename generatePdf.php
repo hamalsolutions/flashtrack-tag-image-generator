@@ -196,6 +196,7 @@ function retrieveImage($url) {
 $client = new GuzzleHttp\Client();
 
 $promises = [];
+$failedPromises = [];
 
 foreach ($imgUrls as $url) {
   $promises[] = function() use ($client, $url) {
@@ -217,19 +218,39 @@ $pool = new Pool($client, $promises, [
   'fulfilled' => function ($data) use (&$results) {
     $results[] = $data;
   },
-  'rejected' => function ($reason, $index) use (&$promises, &$pool) {
+  'rejected' => function ($reason, $index) use (&$promises, $client) {
     if (DEBUG_PDF) {
       echo "Request failed for image at index $index. Retrying...\n";
     }
 
     if ($index < count($promises) - 1) {
       sleep(1);
-      $pool->getQueue()->enqueue($promises[$index + 1]);
+      $failedPromises = $promises[$index];
     }
   }
 ]);
 
 $pool->promise()->wait();
+
+if (DEBUG_PDF) {
+  echo count($results) . " images fetched successfully<br>" . count($promises) . " images failed<br>";
+}
+
+$failedPool = new Pool($client, $failedPromises, [
+  'concurrency' => 10,
+  'fulfilled' => function ($data) use (&$results) {
+    $results[] = $data;
+  },
+  'rejected' => function ($reason, $index) use (&$promises, $client) {
+    //
+  }
+]);
+
+$failedPool->promise()->wait();
+
+if (DEBUG_PDF) {
+  echo count($results) . " images fetched successfully<br>" . count($failedPromises) . " images failed<br>";
+}
 
 foreach ($results as $i => $imgData) {
   $currentImageNumber = $i + 1;
