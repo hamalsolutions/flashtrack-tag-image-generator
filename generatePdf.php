@@ -2,7 +2,7 @@
 
 define("DEBUG_PDF", false);
 ini_set('memory_limit', '256M');
-set_time_limit(60);
+set_time_limit(120);
 
 require_once('vendor/autoload.php');
 
@@ -167,10 +167,37 @@ if (DEBUG_PDF) {
   echo "Label size: " . $lSize["width"] . " ". $lSize["height"] . "<br><br>";
 }
 
+function retrieveImage($url) {
+  // Make HTTP request to fetch image data and response headers
+  $context = stream_context_create(array('http' => array('method' => 'GET')));
+  $fp = fopen($url, 'rb', false, $context);
+  $responseHeaders = stream_get_meta_data($fp)['wrapper_data'];
+  $imageData = stream_get_contents($fp);
+  fclose($fp);
+  
+  // Get response status code from headers
+  preg_match('/^HTTP\/\d+\.\d+\s+(\d+)/', $responseHeaders[0], $matches);
+  $statusCode = $matches[1];
+  
+  // Return array with image data and response headers
+  return array('statusCode' => $statusCode, 'headers' => $responseHeaders, 'imageData' => $imageData);
+}
+
 foreach ($imgUrls as $i => $url) {
   $currentImageNumber = $i + 1;
-  $imageData = file_get_contents($url);
 
+  $response = null;
+  $imageData = null;
+  $statusCode = null;
+
+  do {
+    if ($statusCode != 200) {
+      $response = retrieveImage($url);
+      $imageData = $response['imageData'];
+      $statusCode = $response['statusCode'];
+    }
+  } while ($statusCode != 200);
+  
   $pdf->Image('@'.$imageData, $x, $y, $lSize["width"], $lSize["height"], '', '', '', true, 300, '', false, false, 0, false, false, false);
   
   if (DEBUG_PDF) {
@@ -197,7 +224,7 @@ foreach ($imgUrls as $i => $url) {
       $y += $labelHeightWithSeparator;
   }
 
-  if ($y > ($availableHeightWithMagins - $labelHeightWithSeparator)) {
+  if ($y > ($availableHeightWithMagins - $labelHeightWithSeparator - 20)) {
     if ($currentImageNumber < ($maxItemsPerPage * $maxPages)) {
       if (DEBUG_PDF) {
         echo "[NEXT PAGE]" . "<br>";
