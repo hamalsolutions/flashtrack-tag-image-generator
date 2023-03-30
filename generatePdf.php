@@ -6,8 +6,8 @@ set_time_limit(150);
 
 require_once('vendor/autoload.php');
 
-use GuzzleHttp\Promise\EachPromise;
 use GuzzleHttp\Psr7\Response;
+use GuzzleHttp\Pool;
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   http_response_code(403);
