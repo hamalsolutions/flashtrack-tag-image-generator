@@ -169,18 +169,23 @@ if (DEBUG_PDF) {
 
 function retrieveImage($url) {
   // Make HTTP request to fetch image data and response headers
-  $context = stream_context_create(array('http' => array('method' => 'GET')));
-  $fp = fopen($url, 'rb', false, $context);
-  $responseHeaders = stream_get_meta_data($fp)['wrapper_data'];
-  $imageData = stream_get_contents($fp);
-  fclose($fp);
-  
-  // Get response status code from headers
-  preg_match('/^HTTP\/\d+\.\d+\s+(\d+)/', $responseHeaders[0], $matches);
-  $statusCode = $matches[1];
-  
-  // Return array with image data and response headers
-  return array('statusCode' => $statusCode, 'headers' => $responseHeaders, 'imageData' => $imageData);
+  try {
+    $context = stream_context_create(array('http' => array('method' => 'GET')));
+    $fp = fopen($url, 'rb', false, $context);
+    $responseHeaders = stream_get_meta_data($fp)['wrapper_data'];
+    $imageData = stream_get_contents($fp);
+    fclose($fp);
+    
+    // Get response status code from headers
+    preg_match('/^HTTP\/\d+\.\d+\s+(\d+)/', $responseHeaders[0], $matches);
+    $statusCode = $matches[1];
+    
+    // Return array with image data and response headers
+    return array('statusCode' => $statusCode, 'headers' => $responseHeaders, 'imageData' => $imageData);
+  } catch (\Throwable $th) {
+    sleep(1);
+    return array('statusCode' => 500, 'headers' => [], 'imageData' => null);
+  }
 }
 
 foreach ($imgUrls as $i => $url) {
@@ -191,7 +196,7 @@ foreach ($imgUrls as $i => $url) {
   $statusCode = null;
 
   do {
-    if ($statusCode != 200) {
+    if ($statusCode != 200) { 
       $response = retrieveImage($url);
       $imageData = $response['imageData'];
       $statusCode = $response['statusCode'];
