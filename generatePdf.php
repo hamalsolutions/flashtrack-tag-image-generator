@@ -160,15 +160,15 @@ if ($orderNumber != "") {
 // Set images initial position
 $separator = 10 / $page["dpi"];
 
-$x = 10;
-$y = 10;
+$x = 15;
+$y = 15;
 
 if ($orderNumber != "") {
-  $y = 20;
+  $y = 25;
 }
 
-$labelWidthWithSeparator  = $lSize["width"] + 10 * $separator;
-$labelHeightWithSeparator = $lSize["height"] + 10 * $separator;
+$labelWidthWithSeparator  = $lSize["width"] + 15 * $separator;
+$labelHeightWithSeparator = $lSize["height"] + 15 * $separator;
 
 $availableWidthWithMagins = $size["width"] - $offset / 2;
 $availableHeightWithMagins = $size["height"] - $offset / 2;
@@ -282,19 +282,19 @@ foreach ($results as $i => $imgData) {
       echo "next row" . "<br><br>" ;
     }
 
-      $x = 10;
+      $x = 15;
       $y += $labelHeightWithSeparator;
   }
 
-  if ($y > ($availableHeightWithMagins - $labelHeightWithSeparator - 20)) {
+  if ($y > ($availableHeightWithMagins - $labelHeightWithSeparator - 25)) {
     if ($currentImageNumber < ($maxItemsPerPage * $maxPages)) {
       if (DEBUG_PDF) {
         echo "[NEXT PAGE]" . "<br>";
       }
 
       $pdf->AddPage();
-      $x = 10;
-      $y = 10;
+      $x = 15;
+      $y = 15;
     }
   }
 }
