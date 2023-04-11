@@ -31,27 +31,30 @@ function getImageUrl($field, $label) {
 function getImageUrls($data, $label) {
   $urls = array();
   foreach ($data as $item) {
-    $params = getImageUrl($item, $label);
-    $urls[] = $params;
+    $params = getImageUrl($item["fields"], $label);
+    $urls[$item["index"]] = $params;
   }
   return $urls;
 }
 
 $data = json_decode($_POST['data'], true);
+$imgs = [];
+
+foreach ($data as $key => $value) {
+  $imgs[] = ['index' => $key, 'fields' => $value];
+}
+
 $label = json_decode($_POST['label'], true);
 $orderNumber = json_decode($_POST['orderNumber'], true);
 
 $labelImgSrc = $label['imgSrc'];
-$imgUrls = getImageUrls($data, $labelImgSrc);
+$imgUrls = getImageUrls($imgs, $labelImgSrc);
 
 if (!isset($orderNumber) || !isset($data) || !isset($label) || !isset($imgUrls)) {
   http_response_code(403);
   die('Forbidden');
 }
 
-
-// var_dump($imgUrls);
-// die();
 $unit = "cm";
 
 $UNIT_SIZES = [
@@ -178,37 +181,20 @@ if (DEBUG_PDF) {
   echo "Label size: " . $lSize["width"] . " ". $lSize["height"] . "<br><br>";
 }
 
-function retrieveImage($url) {
-  // Make HTTP request to fetch image data and response headers
-  try {
-    $context = stream_context_create(array('http' => array('method' => 'GET')));
-    $fp = fopen($url, 'rb', false, $context);
-    $responseHeaders = stream_get_meta_data($fp)['wrapper_data'];
-    $imageData = stream_get_contents($fp);
-    fclose($fp);
-
-    // Get response status code from headers
-    preg_match('/^HTTP\/\d+\.\d+\s+(\d+)/', $responseHeaders[0], $matches);
-    $statusCode = $matches[1];
-    
-    // Return array with image data and response headers
-    return array('statusCode' => $statusCode, 'headers' => $responseHeaders, 'imageData' => $imageData);
-  } catch (\Throwable $th) {
-    return array('statusCode' => 500, 'headers' => [], 'imageData' => null);
-  }
-}
-
 $client = new GuzzleHttp\Client();
 
 $promises = [];
 $failedPromises = [];
 
-foreach ($imgUrls as $url) {
-  $promises[] = function() use ($client, $url) {
+foreach ($imgUrls as $index => $url) {
+  $promises[$index] = function() use ($client, $url) {
     return $client->getAsync($url)->then(
-      function(Response $response) {
+      function(Response $response) use ($url) {
         if ($response->getStatusCode() == 200) {
-          return $response->getBody()->getContents();
+          return [
+            'data' => $response->getBody()->getContents(),
+            'url' => $url
+          ];
         }
         throw new Exception('Request failed');
       }
@@ -220,17 +206,17 @@ $results = [];
 
 $pool = new Pool($client, $promises, [
   'concurrency' => 10,
-  'fulfilled' => function ($data) use (&$results) {
-    $results[] = $data;
+  'fulfilled' => function ($result, $index) use (&$results) {
+    $results[$index] = $result['data'];
   },
-  'rejected' => function ($reason, $index) use (&$promises, $client) {
+  'rejected' => function ($reason, $index) use (&$promises, $client, &$failedPromises) {
     if (DEBUG_PDF) {
       echo "Request failed for image at index $index. Retrying...\n";
     }
 
     if ($index < count($promises) - 1) {
       sleep(1);
-      $failedPromises = $promises[$index];
+      $failedPromises[$index] = $promises[$index];
     }
   }
 ]);
@@ -243,8 +229,8 @@ if (DEBUG_PDF) {
 
 $failedPool = new Pool($client, $failedPromises, [
   'concurrency' => 10,
-  'fulfilled' => function ($data) use (&$results) {
-    $results[] = $data;
+  'fulfilled' => function ($result, $index) use (&$results) {
+    $results[$index] = $result['data'];
   },
   'rejected' => function ($reason, $index) use (&$promises, $client) {
     //
@@ -252,6 +238,8 @@ $failedPool = new Pool($client, $failedPromises, [
 ]);
 
 $failedPool->promise()->wait();
+
+ksort($results);
 
 if (DEBUG_PDF) {
   echo count($results) . " images fetched successfully<br>" . count($failedPromises) . " images failed<br>";
