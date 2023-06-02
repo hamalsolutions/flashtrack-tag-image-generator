@@ -1,4 +1,5 @@
 <?php
+require '../vendor/autoload.php';
 define("FONT_PATH", $_ENV["FONT_PATH"]);
 
 function cutline($filename,$cabeza,$line_no=-1){
@@ -167,6 +168,72 @@ function suffix($text, $value) {
         $text .= $value;
     }
     return $text;
+}
+
+// Flashtrak format tool creator text validator
+function adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoint, $width) {
+    $maxWidth = $width - (abs($xPoint) * 2); // Maximum width available for the text
+    
+    do {
+        $fontSize--;
+        
+        // Calculate the text size using the updated font size
+        $valueSize = imagettfbbox($fontSize, $angle, $font, stripslashes($value));
+        
+        $textWidth = $valueSize[2] - $valueSize[0]; // Width of the text
+        
+        // Check if the text fits within the bounds
+        if ($textWidth <= $maxWidth ) {
+            // Calculate the new x and y positions to center the text
+            $x = $xPoint + ($maxWidth - $textWidth) / 2;
+            
+            return $fontSize;
+        }
+    } while ($fontSize > 0);
+    
+    // If the font size reaches 0 and the text still doesn't fit, return an error or handle it accordingly
+    return false;
+}
+
+// Flashtrak format tool creator text validator
+function textoAjustado($value,$xPoint,$yPoint,$width,$height,$font,$color,$fontSize,$angle,$dollarSign,$showEmptyOnRed=TRUE) {
+    global $img,$m_text_color,$mtext;
+    
+    if ($dollarSign == 1)
+        $value = dollarSign($value);
+    if ($dollarSign == -1)
+        $value = sinSigno($value);
+    
+    if ( (is_int($value) && empty($value)) || (is_string($value) && $value=='') ) {
+        if ($showEmptyOnRed) {
+            $value = $mtext;
+        } else {
+            $value = '';
+        }
+        $color = $m_text_color;
+    }
+
+
+    if ($angle == 90 || $angle == 270) {
+        $fontSize = $fontSize * 0.69;
+    } else {
+        $fontSize = $fontSize * 0.78;
+        $fontSizeAdjusted = adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoint, FORMAT_WIDTH);
+        if ($fontSizeAdjusted !== false) {
+            $fontSize = $fontSizeAdjusted;
+        }
+    }
+
+    switch ($angle) {
+        case '0':   imagettftext($img,$fontSize,$angle,$xPoint,$yPoint,$color,$font,stripslashes($value));
+                    break;
+        case '90':  imagettftext($img,$fontSize,$angle,$xPoint+$height,$yPoint-$height,$color,$font,stripslashes($value));
+                    break;
+        case '270': imagettftext($img,$fontSize,$angle,$xPoint-$height,$yPoint-$height,$color,$font,stripslashes($value));
+                    break;
+        default:    imagettftext($img,$fontSize,$angle,$xPoint,$yPoint,$color,$font,stripslashes($value));
+                    break;
+    }
 }
 
 // Good
@@ -459,6 +526,157 @@ function setAsSticker($radioCorners) {
     global $conRoundCorners, $radioForCorners;
     $conRoundCorners = TRUE;
     $radioForCorners = $radioCorners;
+}
+
+// tested once not implemented
+function getimg($url) {         
+    $headers[] = 'Accept: image/gif, image/x-bitmap, image/jpeg, image/pjpeg';              
+    $headers[] = 'Connection: Keep-Alive';         
+    $headers[] = 'Content-type: application/x-www-form-urlencoded;charset=UTF-8';         
+    $user_agent = 'php';         
+    $process = curl_init($url);         
+    curl_setopt($process, CURLOPT_HTTPHEADER, $headers);         
+    curl_setopt($process, CURLOPT_HEADER, 0);         
+    curl_setopt($process, CURLOPT_USERAGENT, $user_agent); //check here         
+    curl_setopt($process, CURLOPT_TIMEOUT, 30);         
+    curl_setopt($process, CURLOPT_RETURNTRANSFER, 1);         
+    curl_setopt($process, CURLOPT_FOLLOWLOCATION, 1);         
+    $return = curl_exec($process);         
+    curl_close($process);         
+    return $return;     
+}
+
+function setImageWithUrl($iconPath) {
+    global $img;
+    
+    // to do
+
+    // $url = $iconPath; 
+    // $save_directory = "C:\Users\pedro\AppData\Local\Temp";
+    // $save_name = "\duck.jpg";
+
+    // $content = file_get_contents($url);
+    // $fp = fopen($save_directory.$save_name, "w");
+    // fwrite($fp, $content);
+    // fclose($fp);
+
+    // $icon = imagecreatefromjpeg("C:\Users\pedro\AppData\Local\Temp\duck.jpg");
+        
+    // imagecopy($img, $icon, 0, 0, 0, 0, 100, 75);
+}
+
+// flashtrak format tool creator image creator (its meant to be for barcodes but i guess it can be used for images aswell)
+function setImageWithString($insertImg, $x, $y, $width, $height, $angle=0, $displayValue=1, $value=null) {
+    global $img;
+
+    $cpImage = imagecreatefromstring($insertImg);
+
+    if ($width != 0 && $height != 0) {
+        $cpImage = imagescale($cpImage, $width, $height);
+    }
+
+    // adds text to the image if display value is set to true
+    if ($displayValue == 1 && $value != null) {
+        $imgWidth  = imagesx($cpImage);
+        $imgHeight = imagesy($cpImage);
+        
+        $font = fuente('arial.ttf');
+        $color = imagecolorallocate($cpImage, 0,0,0);
+
+        $fontSize = 16;
+        // calculates the new height of the image and defines the text position
+        $newHeight = $imgHeight + $fontSize + 10;
+        $textX = 0;
+        $textY = $imgHeight + $fontSize + 10;
+
+        // adjusts the text size to fit the image
+        $fontSize = adjustTextHorizontally($fontSize, 0, $font, $value, $textX, $textY, $imgWidth);
+
+        // Calculate the position to center the text
+        $textWidth = imagettfbbox($fontSize, 0, $font, $value)[2] - imagettfbbox($fontSize, 0, $font, $value)[0];
+        $textX = ($imgWidth - $textWidth) / 2; // Center horizontally
+    
+        // creates a new image with the new height and a white bg and adds the text
+        $cpImageWithText = imagecreatetruecolor($imgWidth, $newHeight);
+        $bg = imagecolorallocate ($cpImageWithText, 255, 255, 255);
+        imagefilledrectangle($cpImageWithText, 0, 0, $imgWidth, $newHeight, $bg);
+        imagecopyresized($cpImageWithText, $cpImage, 0, 0, 0, 0, $imgWidth, $imgHeight, $imgWidth, $imgHeight);
+        imagettftext($cpImageWithText, $fontSize, 0, $textX, $textY, $color, $font, $value);
+        
+        $cpImage = $cpImageWithText;
+    }
+
+    if ($angle != 0) {
+        $cpImage = imagerotate($cpImage, $angle, 0);
+    }
+
+    $imgWidth  = imagesx($cpImage);
+    $imgHeight = imagesy($cpImage);
+
+    switch ($angle) {
+        case '0':
+            imagecopy($img, $cpImage, $x, $y, 0, 0, $imgWidth, $imgHeight);   
+            break;
+        case '90':
+            imagecopy($img, $cpImage, $x, $y-$imgHeight, 0, 0, $imgWidth, $imgHeight);  
+            break;
+        case '270': 
+            imagecopy($img, $cpImage, $x-$imgWidth, $y, 0, 0, $imgWidth, $imgHeight);  
+            break;
+        case '180': 
+            imagecopy($img, $cpImage, $x-$imgWidth, $y-$imgHeight, 0, 0, $imgWidth, $imgHeight);  
+            break;
+        default:    
+            imagecopy($img, $cpImage, $x, $y, 0, 0, $imgWidth, $imgHeight);   
+    }
+}
+
+// define dd function
+function dd($var, $die = true) {
+    echo '<pre>';
+    var_dump($var);
+    echo '</pre>';
+    if ($die) die();
+}
+
+// flashtrak format tool creator barcode creator
+function barcodeAjustado($value,$x,$y,$width=2,$height=100,$barcodeType,$angle=0,$defaultValue,$displayValue=1) {
+    $generator = new Picqer\Barcode\BarcodeGeneratorPNG();
+    $type = $generator::TYPE_CODE_128;
+
+    // mode codes could be added check https://github.com/picqer/php-barcode-generator for more info
+    // The frontend tool must add the extra cases if more are added here
+    switch ($barcodeType) {
+        case 'UPC':
+            $type = $generator::TYPE_UPC_A;
+            break;
+        case 'EAN13':
+            $type = $generator::TYPE_EAN_13;
+            break;
+        case 'EAN8':
+            $type = $generator::TYPE_EAN_8;
+            break;
+        case 'CODE128':
+            $type = $generator::TYPE_CODE_128;
+            break;
+        case 'CODE39':
+            $type = $generator::TYPE_CODE_39;
+            break;
+        case 'MSI':
+            $type = $generator::TYPE_MSI;
+            break;
+        default:
+            break;
+    }
+
+    try {
+        $png = $generator->getBarcode($value, $type, $width, $height);
+        setImageWithString($png, $x, $y, 0, 0, $angle, $displayValue, $value);
+    } catch (Exception $e) {
+        $png = $generator->getBarcode($defaultValue, $type, $width, $height, array(255,0,0));
+        setImageWithString($png, $x, $y, 0, 0, $angle, $displayValue, $defaultValue);
+    }
+
 }
 
 // Good

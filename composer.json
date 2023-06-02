@@ -2,6 +2,7 @@
     "require": {
         "vlucas/phpdotenv": "^4.2",
         "guzzlehttp/guzzle": "~6.0",
-        "tecnickcom/tcpdf": "^6.6"
+        "tecnickcom/tcpdf": "^6.6",
+        "picqer/php-barcode-generator": "^0.3.0"
     }
 }
