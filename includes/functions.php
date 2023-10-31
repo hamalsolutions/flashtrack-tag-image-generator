@@ -181,7 +181,7 @@ function adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoi
         $valueSize = imagettfbbox($fontSize, $angle, $font, stripslashes($value));
         
         $textWidth = $valueSize[2] - $valueSize[0]; // Width of the text
-        
+
         // Check if the text fits within the bounds
         if ($textWidth <= $maxWidth ) {
             // Calculate the new x and y positions to center the text
@@ -193,6 +193,35 @@ function adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoi
     
     // If the font size reaches 0 and the text still doesn't fit, return an error or handle it accordingly
     return false;
+}
+
+function puntoCentrado_2($text,$font,$fontSize,$angle=0,$xPoint) {
+    $tb = imagettfbbox($fontSize,0,$font,$text);
+    $x = 0;
+    $overflowW = (($xPoint + $tb[2]) > FORMAT_WIDTH);
+    $overflowH = (($xPoint + $tb[2]) > FORMAT_HEIGHT);
+
+    switch ($angle) {
+        case '0':   if ($overflowW) {
+                        $x = ceil((FORMAT_WIDTH - $tb[2]));
+                    }else{
+                        $x = $xPoint;
+                    }
+                    break;
+        case '90':  if ($overflowH) {
+                        $x = ceil((FORMAT_HEIGHT - $tb[2]));
+                    }else{
+                        $x = $xPoint;
+                    }
+                    break;
+        case '270': if ($overflowH) {
+                        $x = ceil((FORMAT_HEIGHT - $tb[2]));
+                    }else{
+                        $x = $xPoint;
+                    }
+                    break;
+    }
+    return $x;
 }
 
 // Flashtrak format tool creator text validator
@@ -215,23 +244,23 @@ function textoAjustado($value,$xPoint,$yPoint,$width,$height,$font,$color,$fontS
 
 
     if ($angle == 90 || $angle == 270) {
-        $fontSize = $fontSize * 0.69;
+        //$fontSize = $fontSize * 0.69;
     } else {
-        $fontSize = $fontSize * 0.78;
+        //$fontSize = $fontSize * 0.78;
         $fontSizeAdjusted = adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoint, FORMAT_WIDTH);
         if ($fontSizeAdjusted !== false) {
             $fontSize = $fontSizeAdjusted;
         }
     }
-
+    
     switch ($angle) {
-        case '0':   imagettftext($img,$fontSize,$angle,$xPoint,$yPoint,$color,$font,stripslashes($value));
+        case '0':   imagettftext($img,$fontSize,$angle,puntoCentrado_2($value,$font,$fontSize,0,$xPoint),$yPoint,$color,$font,stripslashes($value));
                     break;
-        case '90':  imagettftext($img,$fontSize,$angle,$xPoint+$height,$yPoint-$height,$color,$font,stripslashes($value));
+        case '90':  imagettftext($img,$fontSize,$angle,puntoCentrado_2($value,$font,$fontSize,90,$xPoint),$yPoint-$height,$color,$font,stripslashes($value));
                     break;
-        case '270': imagettftext($img,$fontSize,$angle,$xPoint-$height,$yPoint-$height,$color,$font,stripslashes($value));
+        case '270': imagettftext($img,$fontSize,$angle,puntoCentrado_2($value,$font,$fontSize,270,$xPoint),$yPoint-$height,$color,$font,stripslashes($value));
                     break;
-        default:    imagettftext($img,$fontSize,$angle,$xPoint,$yPoint,$color,$font,stripslashes($value));
+        default:    imagettftext($img,$fontSize,$angle,puntoCentrado_2($value,$font,$fontSize,0,$xPoint),$yPoint,$color,$font,stripslashes($value));
                     break;
     }
 }
