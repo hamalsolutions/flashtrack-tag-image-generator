@@ -244,9 +244,9 @@ function textoAjustado($value,$xPoint,$yPoint,$width,$height,$font,$color,$fontS
 
 
     if ($angle == 90 || $angle == 270) {
-        //$fontSize = $fontSize * 0.69;
+        $fontSize = $fontSize * 0.69;
     } else {
-        //$fontSize = $fontSize * 0.78;
+        $fontSize = $fontSize * 0.78;
         $fontSizeAdjusted = adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoint, FORMAT_WIDTH);
         if ($fontSizeAdjusted !== false) {
             $fontSize = $fontSizeAdjusted;
