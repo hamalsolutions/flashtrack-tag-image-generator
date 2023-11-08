@@ -639,9 +639,83 @@ function dd($var, $die = true) {
     if ($die) die();
 }
 
+// itf14 check digit calculator
+function calculateCheckDigit($gtin14WithoutCheckDigit) {
+    $sum = 0;
+    $length = strlen($gtin14WithoutCheckDigit);
+
+    for ($i = 0; $i < $length; $i++) {
+        $digit = (int) $gtin14WithoutCheckDigit[$i];
+        $weight = ($i % 2 === 0) ? 3 : 1;
+        $sum += $digit * $weight;
+    }
+
+    $nextMultipleOfTen = ceil($sum / 10) * 10;
+    $checkDigit = $nextMultipleOfTen - $sum;
+
+    return $checkDigit;
+}
+
+function addQuietZone($barcodeImage) {
+    $cpImage = imagecreatefromstring($barcodeImage);
+
+    $barcodeWidth = imagesx($cpImage);
+    $barcodeHeight = imagesy($cpImage);
+
+    $quietZoneWidth = 30; // 20 pixels on each side as an example
+    $newImageWidth = $barcodeWidth + 2 * $quietZoneWidth;
+    $newImageHeight = $barcodeHeight;
+    $newImage = imagecreatetruecolor($newImageWidth, $newImageHeight);
+    $white = imagecolorallocate($newImage, 255, 255, 255);
+
+    imagefill($newImage, 0, 0, $white);
+    imagecopy($newImage, $cpImage, $quietZoneWidth, 0, 0, 0, $barcodeWidth, $barcodeHeight);
+    
+    ob_start();
+    imagepng($newImage);
+    $imagedata = ob_get_contents();
+    ob_end_clean();
+
+    return $imagedata;
+}
+
+function addBearerBars($barcodeImage) {
+    $cpImage = imagecreatefromstring($barcodeImage);
+
+    $barcodeWidth = imagesx($cpImage);
+    $barcodeHeight = imagesy($cpImage);
+
+    $bearerBarHeight = 10;
+    $bearerBarWidth = $barcodeWidth + 2 * $bearerBarHeight;
+
+    $newImageHeight = $barcodeHeight + 2 * $bearerBarHeight;
+    $newImage = imagecreatetruecolor($bearerBarWidth, $newImageHeight);
+    $black = imagecolorallocate($newImage, 0, 0, 0);
+    imagefill($newImage, 0, 0, $black);
+    imagecopy($newImage, $cpImage, $bearerBarHeight, $bearerBarHeight, 0, 0, $barcodeWidth, $barcodeHeight);
+
+    for ($i = 0; $i < $bearerBarHeight; $i++) {
+        imageline($newImage, 0, $i, $bearerBarWidth - 1, $i, $black); // Top bearer bar
+        imageline($newImage, 0, $newImageHeight - $i - 1, $bearerBarWidth - 1, $newImageHeight - $i - 1, $black); // Bottom bearer bar
+    }
+
+    for ($i = 0; $i < $newImageHeight; $i++) {
+        imageline($newImage, 0, $i, $bearerBarHeight - 1, $i, $black); // Left bearer bar
+        imageline($newImage, $bearerBarWidth - $bearerBarHeight, $i, $bearerBarWidth - 1, $i, $black); // Right bearer bar
+    }
+    
+    ob_start();
+    imagepng($newImage);
+    $imagedata = ob_get_contents();
+    ob_end_clean();
+
+    return $imagedata;
+}
+
 // flashtrak format tool creator barcode creator
 function barcodeAjustado($value,$x,$y,$width=2,$height=100,$barcodeType,$angle=0,$defaultValue,$displayValue=1) {
     $generator = new Picqer\Barcode\BarcodeGeneratorPNG();
+    
     $type = $generator::TYPE_CODE_128;
 
     // mode codes could be added check https://github.com/picqer/php-barcode-generator for more info
@@ -665,12 +739,29 @@ function barcodeAjustado($value,$x,$y,$width=2,$height=100,$barcodeType,$angle=0
         case 'MSI':
             $type = $generator::TYPE_MSI;
             break;
-        default:
+        case 'ITF14':
+            $pkgIndicator = 0;
+            $gtin14WithZeroes = str_pad($value, 12, "0", STR_PAD_LEFT);
+            $checkDigit = calculateCheckDigit($value);
+            // new itf code with 14 digits
+            $value = $pkgIndicator . $gtin14WithZeroes . $checkDigit;
+            $type = $generator::TYPE_INTERLEAVED_2_5;
+            break;
+        default: 
             break;
     }
 
     try {
         $png = $generator->getBarcode($value, $type, $width, $height);
+
+        // adds bearer bars to the barcode
+        if ($barcodeType == 'ITF14') {
+            // add quiet zone
+            $png = addQuietZone($png);
+            // add bearer bars
+            $png = addBearerBars($png);
+        }
+
         setImageWithString($png, $x, $y, 0, 0, $angle, $displayValue, $value);
     } catch (Exception $e) {
         $png = $generator->getBarcode($defaultValue, $type, $width, $height, array(255,0,0));
