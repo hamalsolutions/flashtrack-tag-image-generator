@@ -255,7 +255,7 @@ function barcode_outimage($text, $bars, $scale = 1, $mode = "png",
     global $_SERVER;
     $chars=explode(" ", $text);
     reset($chars);
-    while (list($n, $v)=each($chars)){
+    foreach ($chars as $n => $v) {
 	if (trim($v)){
 	    $inf=explode(":", $v);
 	    $fontsize=$scale*($inf[1]/1.8)+$textSize;
@@ -303,7 +303,7 @@ function barcode_outtext($code,$bars){
 	    for ($a=0;$a<$val;$a++) $bar_line.="-";
 	    continue;
 	}
-	if (ereg("[a-z]", $val)){
+	if (preg_match('/[a-z]/', $val)){
 	    $val=ord($val)-ord('a')+1;
 	    $h=$heigh2;
 	    for ($a=0;$a<$val;$a++) $bar_line.="I";
@@ -362,7 +362,7 @@ function barcode_outhtml($code, $bars, $scale = 1, $total_y = 0, $space = ''){
 	    $width=false;
 	    continue;
 	}
-	if (ereg("[a-z]", $val)){
+	if (preg_match('/[a-z]/', $val)){
 	    //hoher strich
 	    $val=ord($val)-ord('a')+1;
 	    $h=$height2;
@@ -499,8 +499,8 @@ function barcode_print_OLD($code, $encoding="ANY", $scale = 2 ,$mode = "png" ){
     $bars=barcode_encode($code,$encoding);
     if (!$bars) return;
     if (!$mode) $mode="png";
-    if (eregi($mode,"^(text|txt|plain)$")) print barcode_outtext($bars['text'],$bars['bars']);
-    elseif (eregi($mode,"^(html|htm)$")) print barcode_outhtml($bars['text'],$bars['bars'], $scale,0, 0);
+    if (preg_match('/^(text|txt|plain)$/i', $mode)) print barcode_outtext($bars['text'],$bars['bars']);
+    elseif (preg_match('/^(html|htm)$/i', $mode)) print barcode_outhtml($bars['text'],$bars['bars'], $scale,0, 0);
     else barcode_outimage($bars['text'],$bars['bars'],$scale, $mode);
     return $bars;
 }

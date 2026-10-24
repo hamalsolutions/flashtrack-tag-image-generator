@@ -195,7 +195,7 @@ function adjustTextHorizontally($fontSize, $angle, $font, $value, $xPoint, $yPoi
     return false;
 }
 
-function puntoCentrado_2($text,$font,$fontSize,$angle=0,$xPoint) {
+function puntoCentrado_2($text,$font,$fontSize,$angle=0,$xPoint=0) {
     $tb = imagettfbbox($fontSize,0,$font,$text);
     $x = 0;
     $overflowW = (($xPoint + $tb[2]) > FORMAT_WIDTH);
@@ -225,7 +225,7 @@ function puntoCentrado_2($text,$font,$fontSize,$angle=0,$xPoint) {
 }
 
 // Flashtrak format tool creator text validator
-function textoAjustado($value,$xPoint,$yPoint,$width,$height,$font,$color,$fontSize,$angle,$dollarSign,$showEmptyOnRed=TRUE) {
+function textoAjustado($value,$xPoint,$yPoint,$width,$height,$font,$color,$fontSize,$angle,$dollarSign=0,$showEmptyOnRed=TRUE) {
     global $img,$m_text_color,$mtext;
     
     if ($dollarSign == 1)
@@ -266,7 +266,7 @@ function textoAjustado($value,$xPoint,$yPoint,$width,$height,$font,$color,$fontS
 }
 
 // Good
-function texto($value,$xPoint,$yPoint,$align,$leftMargin,$font,$color,$fontSize,$angle,$dollarSign,$showEmptyOnRed=TRUE) {
+function texto($value,$xPoint,$yPoint,$align,$leftMargin,$font,$color,$fontSize,$angle,$dollarSign=0,$showEmptyOnRed=TRUE) {
     global $img,$m_text_color,$mtext;
     
     if ($dollarSign == 1)
@@ -742,7 +742,7 @@ function addBearerBars($barcodeImage) {
 }
 
 // flashtrak format tool creator barcode creator
-function barcodeAjustado($value,$x,$y,$width=2,$height=100,$barcodeType,$angle=0,$defaultValue,$displayValue=1) {
+function barcodeAjustado($value,$x,$y,$width=2,$height=100,$barcodeType='UPC',$angle=0,$defaultValue='',$displayValue=1) {
     $generator = new Picqer\Barcode\BarcodeGeneratorPNG();
     
     $type = $generator::TYPE_CODE_128;
@@ -1620,11 +1620,11 @@ function generate_upc_checkdigit($upc_code) {
     for($i=0; $i<11; $i++) {
         if((($i+1)%2) == 0) {
             /* Sum even digits */
-            $even_total += $upc_code[$i];
+            $even_total += (int)$upc_code[$i];
         
         } else {
             /* Sum odd digits */
-            $odd_total += $upc_code[$i];
+            $odd_total += (int)$upc_code[$i];
         }
     }
 
@@ -1762,6 +1762,42 @@ function textoParrafoEspaciado($area,$fontSize,$angulo,$xPoint,$yPoint,$color,$f
     {
         imagettftext($area,$fontSize,$angulo,$xPoint,$yPoint-5,$color,$font,$text);
     }
+}
+
+// Compatibility wrappers for older format templates.
+function puntoCentrado2($text,$font,$fontSize,$angle=0) {
+    return puntoCentrado($text,$font,$fontSize,$angle);
+}
+
+function puntoCentrado270($text,$fontSize,$flag=0) {
+    // The legacy helper had no font argument. Use the same metric family
+    // the templates render with: Arial Bold for text, Myriad Bold for numeric fields.
+    $metricFont = $flag ? FONT_PATH.'arialbd.ttf' : FONT_PATH.'MyriadPro-Bold.otf';
+    $tb = imagettfbbox($fontSize,0,$metricFont,$text);
+    $textWidth = abs($tb[2]-$tb[0]);
+    return ceil((FORMAT_HEIGHT-$textWidth)/2);
+}
+
+function textoParrafo($area,$fontSize,$angulo,$xPoint,$yPoint,$color,$font,$boldOrNot,$text,$maxLengthInTheLine) {
+    textoParrafoEspaciado($area,$fontSize,$angulo,$xPoint,$yPoint,$color,$font,$boldOrNot,$text,10,$maxLengthInTheLine);
+}
+
+function textoParrafo2($text,$xPoint,$yPoint,$font,$color,$fontSize,$angle,$maxLengthInTheLine,$espacioEntreLineas=10) {
+    global $img;
+    textoParrafoEspaciado($img,$fontSize,$angle,$xPoint,$yPoint,$color,$font,1,$text,$espacioEntreLineas,$maxLengthInTheLine);
+}
+
+function textoParrafoCentrado($area,$fontSize,$angulo,$yPoint,$color,$font,$boldOrNot,$text,$maxLengthInTheLine) {
+    $firstLine = substr($text,0,$maxLengthInTheLine);
+    $xPoint = puntoCentrado($firstLine,$font,$fontSize,$angulo);
+    textoParrafoEspaciado($area,$fontSize,$angulo,$xPoint,$yPoint,$color,$font,$boldOrNot,$text,10,$maxLengthInTheLine);
+}
+
+function textoParrafoCentrado2($text,$yPoint,$font,$color,$fontSize,$angle,$maxLengthInTheLine,$espacioEntreLineas=10) {
+    global $img;
+    $firstLine = substr($text,0,$maxLengthInTheLine);
+    $xPoint = puntoCentrado($firstLine,$font,$fontSize,$angle);
+    textoParrafoEspaciado($img,$fontSize,$angle,$xPoint,$yPoint,$color,$font,1,$text,$espacioEntreLineas,$maxLengthInTheLine);
 }
 
 function textoVertical($value,$xPoint,$yPoint,$font,$color,$fontSize,$formatAngle,$space=7) {

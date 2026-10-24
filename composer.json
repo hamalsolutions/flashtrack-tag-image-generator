@@ -1,4 +1,12 @@
 {
+    "scripts": {
+        "post-install-cmd": [
+            "@php scripts/fix-picqer-php8.php"
+        ],
+        "post-update-cmd": [
+            "@php scripts/fix-picqer-php8.php"
+        ]
+    },
     "require": {
         "vlucas/phpdotenv": "^4.2",
         "guzzlehttp/guzzle": "~6.0",

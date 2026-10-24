@@ -121,7 +121,7 @@
         }
         
         // Valores obtenidos por Get para generar los samples desde un CSV
-        if (get_magic_quotes_gpc())
+        if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc())
         {
             $code=stripslashes(getvar('code'));
         } else {

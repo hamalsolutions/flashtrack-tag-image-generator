@@ -260,7 +260,7 @@ function barcode_outimage($text, $bars, $scale = 1, $mode = "png",
     global $_SERVER;
     $chars=explode(" ", $text);
     reset($chars);
-    while (list($n, $v)=each($chars)){
+    foreach ($chars as $n => $v) {
 	if (trim($v)){
 	    $inf=explode(":", $v);
 	    $fontsize=$scale*($inf[1]/1.8)+$textSize;
@@ -283,7 +283,7 @@ function barcode_outimage($text, $bars, $scale = 1, $mode = "png",
 	header("Content-Type: image/gif; name=\"barcode.gif\"");
 	imagegif($img);
     } else {
-	header("Content-Type: image/png; name=\"barcode.png\"");
+	if (!headers_sent()) header("Content-Type: image/png; name=\"barcode.png\"");
 	imagepng($img);
     }                  
 
@@ -525,7 +525,7 @@ function barcode_print($code, $encoding="ANY", $scale = 2 ,$mode = "png" ){
 }
 
 
-function wrongUPCnumberMessage($scale=1,$code, $upcvalidate) {
+function wrongUPCnumberMessage($scale=1,$code='',$upcvalidate=null) {
     global $bar_color, $bg_color, $text_color;
     global $img;
     global $totaly, $bartop, $barbottom, $barleft, $barrigth, $dientes, $ancho;
@@ -568,7 +568,7 @@ function wrongUPCnumberMessage($scale=1,$code, $upcvalidate) {
     $charsQty=count($chars);
     reset($chars);
     $i=0;
-    while (list($n, $v)=each($chars)){
+    foreach ($chars as $n => $v) {
         $i++;
 	if (trim($v)){
 	    $inf=explode(":", $v);
