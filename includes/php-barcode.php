@@ -396,9 +396,8 @@ function barcode_encode_genbarcode($code,$encoding){
     if (!$encoding) $encoding="ANY";
     $encoding=str_replace(array('|','\\'), '_', $encoding);
     $code=str_replace(array('|','\\'), '_', $code);
-    $cmd=$genbarcode_loc." \""
-	.str_replace("\"", "\\\"",$code)."\" \""
-	.str_replace("\"", "\\\"",strtoupper($encoding))."\"";
+    // escapeshellarg: $code comes from request data (CSV/POST); prevents command injection via $(...) or backticks
+    $cmd=escapeshellarg($genbarcode_loc)." ".escapeshellarg($code)." ".escapeshellarg(strtoupper($encoding));
     //print "'$cmd'<BR>\n";
     $fp=popen($cmd, "r");
     if ($fp){

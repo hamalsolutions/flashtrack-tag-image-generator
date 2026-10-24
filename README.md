@@ -4,7 +4,8 @@ PHP 8.5 label image generator.
 
 ## Requirements
 
-- PHP **8.5.12**
+- PHP **8.5.x** (tested on Ubuntu 26.04 `8.5.4-0ubuntu1.5`, which includes the security fixes for CVE-2026-109618/109619)
+- `barcode` system package (provides `libbarcode.so.0`, required by `genbarcode`)
 - PHP extensions: `gd` (with FreeType), `mbstring`, `curl`, `json`, `zip`
 - Composer 2.x
 - Linux x86-64 for the provided `genbarcode` binary
@@ -63,16 +64,19 @@ GENBARCODE_PATH=/usr/local/bin/genbarcode
 
 ### 4. Install the barcode binary
 
+`genbarcode` links against `libbarcode.so.0`, provided by the `barcode` package:
+
 ```bash
+sudo apt install barcode
 chmod +x genbarcode
 sudo cp genbarcode /usr/local/bin/genbarcode
 sudo chmod +x /usr/local/bin/genbarcode
 ```
 
-Verify:
+Verify (the encoding name is `EAN`, not `EAN13`; an unknown encoding prints the help instead of a barcode):
 
 ```bash
-/usr/local/bin/genbarcode 123456789012 EAN13
+/usr/local/bin/genbarcode 123456789012 EAN
 ```
 
 The included binary is Linux x86-64. On another architecture, replace it with a compatible build.

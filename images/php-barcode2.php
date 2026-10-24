@@ -394,15 +394,10 @@ function barcode_encode_genbarcode($code,$encoding){
     /* delete EAN-13 checksum */
     if (preg_match("/^ean$/i", $encoding) && strlen($code)==13) $code=substr($code,0,12);
     if (!$encoding) $encoding="ANY";
-    //$encoding=ereg_replace("/[|\\]/", "_", $encoding);
-    $encoding =  str_replace('', '_', $encoding);
-    $encoding =  str_replace('\\', '_', $encoding);
-    //$code=ereg_replace("/[|\\]/", "_", $code);
-    $code =  str_replace('', '_', $code);
-    $code =  str_replace('\\', '_', $code);
-    $cmd=$genbarcode_loc." \""
-	.str_replace("\"", "\\\"",$code)."\" \""
-	.str_replace("\"", "\\\"",strtoupper($encoding))."\"";
+    $encoding=str_replace(array('|','\\'), '_', $encoding);
+    $code=str_replace(array('|','\\'), '_', $code);
+    // escapeshellarg: $code comes from request data (CSV/POST); prevents command injection via $(...) or backticks
+    $cmd=escapeshellarg($genbarcode_loc)." ".escapeshellarg($code)." ".escapeshellarg(strtoupper($encoding));
     //print "'$cmd'<BR>\n";
     $fp=popen($cmd, "r");
     if ($fp){
